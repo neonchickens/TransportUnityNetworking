@@ -62,19 +62,19 @@ public class Server : MonoBehaviour
                         //TODO: Maybe if we trim the info (don't need float values) we can shorten these messages
                         dicPlayers[id].GetComponent<PlayerController>().Copy(out pos, out rot, out posVel, out rotVel);
                         SendMessageToUser(NetworkedObject.csvRecord(',', id.ToString(), "spawn"), connectionId);
-                        SendMessageToUser(NetworkedObject.csvRecord(',', id.ToString(), "transform", pos.x.ToString("F0"), pos.y.ToString("F0"), pos.z.ToString("F0"),
-                            rot.x.ToString("F0"), rot.y.ToString("F0"), rot.z.ToString("F0")), connectionId);
-                        SendMessageToUser(NetworkedObject.csvRecord(',', id.ToString(), "rigidbody", posVel.x.ToString("F0"), posVel.y.ToString("F0"), posVel.z.ToString("F0"),
-                            rotVel.x.ToString("F0"), rotVel.y.ToString("F0"), rotVel.z.ToString("F0")), connectionId);
+                        SendMessageToUser(NetworkedObject.csvRecord(',', id.ToString(), "transform", pos.x.ToString("F1"), pos.y.ToString("F1"), pos.z.ToString("F1"),
+                            rot.x.ToString("F1"), rot.y.ToString("F1"), rot.z.ToString("F1")), connectionId);
+                        SendMessageToUser(NetworkedObject.csvRecord(',', id.ToString(), "rigidbody", posVel.x.ToString("F1"), posVel.y.ToString("F1"), posVel.z.ToString("F1"),
+                            rotVel.x.ToString("F1"), rotVel.y.ToString("F1"), rotVel.z.ToString("F1")), connectionId);
                     }
 
                     //Tell other players about new player
                     go.GetComponent<PlayerController>().Copy(out pos, out rot, out posVel, out rotVel);
                     string newPlayerMessageSpawn = NetworkedObject.csvRecord(',', connectionId.ToString(), "spawn");
-                    string newPlayerMessageTransform = NetworkedObject.csvRecord(',', connectionId.ToString(), "transform", pos.x.ToString("F0"), pos.y.ToString("F0"), pos.z.ToString("F0"),
-                            rot.x.ToString("F0"), rot.y.ToString("F0"), rot.z.ToString("F0"));
-                    string newPlayerMessageRigidbody = NetworkedObject.csvRecord(',', connectionId.ToString(), "rigidbody", posVel.x.ToString("F0"), posVel.y.ToString("F0"), posVel.z.ToString("F0"),
-                            rotVel.x.ToString("F0"), rotVel.y.ToString("F0"), rotVel.z.ToString("F0"));
+                    string newPlayerMessageTransform = NetworkedObject.csvRecord(',', connectionId.ToString(), "transform", pos.x.ToString("F1"), pos.y.ToString("F1"), pos.z.ToString("F1"),
+                            rot.x.ToString("F1"), rot.y.ToString("F1"), rot.z.ToString("F1"));
+                    string newPlayerMessageRigidbody = NetworkedObject.csvRecord(',', connectionId.ToString(), "rigidbody", posVel.x.ToString("F1"), posVel.y.ToString("F1"), posVel.z.ToString("F1"),
+                            rotVel.x.ToString("F1"), rotVel.y.ToString("F1"), rotVel.z.ToString("F1"));
                     foreach (int id in dicPlayers.Keys)
                     {
                         SendMessageToUser(newPlayerMessageSpawn, id);

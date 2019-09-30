@@ -29,8 +29,8 @@ public class NetworkedObject : MonoBehaviour
             {
                 Vector3 pos = gameObject.transform.position;
                 Vector3 rot = gameObject.transform.rotation.eulerAngles;
-                client.SendMessageToServer(csvRecord(',', "utransform", pos.x.ToString("F0"), pos.y.ToString("F0"), pos.z.ToString("F0"),
-                    rot.x.ToString("F0"), rot.y.ToString("F0"), rot.z.ToString("F0")));
+                client.SendMessageToServer(csvRecord(',', "utransform", pos.x.ToString("F1"), pos.y.ToString("F1"), pos.z.ToString("F1"),
+                    rot.x.ToString("F1"), rot.y.ToString("F1"), rot.z.ToString("F1")));
             }
         }
     }
@@ -38,9 +38,9 @@ public class NetworkedObject : MonoBehaviour
     public static Vector3 ArrToV3(string[] arr, int start)
     {
         Vector3 v3 = new Vector3();
-        v3.x = int.Parse(arr[start++]);
-        v3.y = int.Parse(arr[start++]);
-        v3.z = int.Parse(arr[start++]);
+        v3.x = float.Parse(arr[start++]);
+        v3.y = float.Parse(arr[start++]);
+        v3.z = float.Parse(arr[start++]);
         return v3;
     }
 
