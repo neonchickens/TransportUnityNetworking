@@ -12,11 +12,26 @@ public class PlayerController : MonoBehaviour
     public float jump;
     public float turn;
 
+    [NetworkVar]
+    public bool forward, left, right, back;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         no = GetComponent<NetworkedObject>();
         c = FindObjectOfType<Client>();
+    }
+
+    void FixedUpdate()
+    {
+        if (forward || back)
+        {
+            rb.AddForce(transform.forward * speed * (forward ? 1 : -1));
+        }
+        if (left || right)
+        {
+            rb.AddTorque(turn * new Vector3(0, (left ? -1 : 1), 0));
+        }
     }
 
     public void SetTransform(Vector3 pos, Vector3 rot)
@@ -40,35 +55,9 @@ public class PlayerController : MonoBehaviour
     public void Jump()
     {
         rb.velocity += jump * new Vector3(0, 1, 0);
-        if (no.isLocalPlayer)
+        if (no.GetLocal())
         {
             c.SendMessageToServer("j");
-        }
-    }
-
-    public void WalkForward()
-    {
-        rb.AddForce(transform.forward * speed);
-        if (no.isLocalPlayer)
-        {
-            c.SendMessageToServer("w");
-        }
-    }
-
-    public void TurnLeft()
-    {
-        rb.AddTorque(turn * new Vector3(0, 1, 0));
-        if (no.isLocalPlayer)
-        {
-            c.SendMessageToServer("l");
-        }
-    }
-    public void TurnRight()
-    {
-        rb.AddTorque(turn * new Vector3(0, -1, 0));
-        if (no.isLocalPlayer)
-        {
-            c.SendMessageToServer("r");
         }
     }
 

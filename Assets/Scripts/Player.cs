@@ -17,7 +17,7 @@ public class Player : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        if (!no.isLocalPlayer)
+        if (!no.GetLocal())
         {
             return;
         }
@@ -26,23 +26,36 @@ public class Player : MonoBehaviour
         {
             if (Input.GetAxis("Vertical") > 0)
             {
-                pc.WalkForward();
+                pc.forward = true;
+                pc.back = false;
             }
             else
             {
                 //Walk backwards?
+                pc.forward = false;
+                pc.back = true;
             }
+        } else
+        {
+            pc.forward = false;
+            pc.back = false;
         }
 
         if (Input.GetAxis("Horizontal") != 0)
         {
             if (Input.GetAxis("Horizontal") > 0)
             {
-                pc.TurnLeft();
+                pc.left = false;
+                pc.right = true;
             } else
             {
-                pc.TurnRight();
+                pc.left = true;
+                pc.right = false;
             }
+        } else
+        {
+            pc.left = false;
+            pc.right = false;
         }
     }
 }

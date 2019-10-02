@@ -7,6 +7,7 @@ public class Client : MonoBehaviour
 {
     private int connectionId;
     private Dictionary<int, GameObject> dicPlayers;
+    public Dictionary<int, NetworkedObject> dicNetObjects;
 
     int hostId;
     int myReliableChannelId;
@@ -50,7 +51,8 @@ public class Client : MonoBehaviour
                 case NetworkEventType.ConnectEvent:
 
                     goLocalPlayer = Instantiate(FindObjectOfType<Items>().getItem("player"));
-                    goLocalPlayer.GetComponent<NetworkedObject>().isLocalPlayer = true;
+                    goLocalPlayer.GetComponent<NetworkedObject>().SetPrefab("player");
+                    goLocalPlayer.GetComponent<NetworkedObject>().SetLocal(true);
                     FindObjectOfType<CameraFollow>().SetPlayer(goLocalPlayer);
 
                     break;
@@ -65,35 +67,40 @@ public class Client : MonoBehaviour
                         {
                             if (cmd[1].Equals("spawn"))
                             {
-                                if (dicPlayers.Count == 0)
-                                {
-                                    localPlayerId = playerId;
-                                    dicPlayers.Add(localPlayerId, goLocalPlayer);
-                                }
-                                else
-                                {
-                                    GameObject goPlayer = Instantiate(FindObjectOfType<Items>().getItem("player"));
-                                    dicPlayers.Add(playerId, goPlayer);
-                                }
+                                dicNetObjects.Add(int.Parse(cmd[2]), null);
+                                GameObject goPlayer = Instantiate(FindObjectOfType<Items>().getItem(cmd[3]));
+                                NetworkedObject no = goPlayer.GetComponent<NetworkedObject>();
+                                no.SetPrefab(cmd[3]);
+                                no.SetNetworkId(int.Parse(cmd[2]));
+                                dicNetObjects.Add(int.Parse(cmd[2]), no);
+                                //if (dicPlayers.Count == 0)
+                                //{
+                                //    localPlayerId = playerId;
+                                //    dicPlayers.Add(localPlayerId, goLocalPlayer);
+                                //}
+                                //else
+                                //{
+                                //    dicPlayers.Add(playerId, goPlayer);
+                                //}
 
-                            }
+                            } else if (cmd[1].Equals("connect"))
+                            {
+                                localPlayerId = (playerId);
 
-                            PlayerController pcPlayer = dicPlayers[playerId].GetComponent<PlayerController>();
-
-                            if (cmd[1].Equals("transform"))
+                            } else if (cmd[1].Equals("transform"))
                             {
                                 //Used for initial transform setting
                                 int index = 2;
-                                GameObject goPlayer = dicPlayers[playerId];
+                                GameObject goPlayer = dicNetObjects[int.Parse(cmd[2])].gameObject;
                                 Vector3 pos = NetworkedObject.ArrToV3(cmd, index);
                                 Vector3 rot = NetworkedObject.ArrToV3(cmd, index + 3);
 
                                 goPlayer.GetComponent<PlayerController>().SetTransform(pos, rot);
                             }
-                            else if (cmd[1].Equals("utransform"))
+                            else if (cmd[1].Equals("uutransform"))
                             {
                                 int index = 2;
-                                GameObject goPlayer = dicPlayers[playerId];
+                                GameObject goPlayer = dicNetObjects[int.Parse(cmd[2])].gameObject;
                                 Vector3 pos = NetworkedObject.ArrToV3(cmd, index);
                                 Vector3 rot = NetworkedObject.ArrToV3(cmd, index + 3);
 
@@ -112,23 +119,23 @@ public class Client : MonoBehaviour
                             else if (cmd[1].Equals("rigidbody"))
                             {
                                 int index = 2;
-                                GameObject goPlayer = dicPlayers[playerId];
+                                GameObject goPlayer = dicNetObjects[int.Parse(cmd[2])].gameObject;
                                 Vector3 posVel = NetworkedObject.ArrToV3(cmd, index);
                                 Vector3 rotVel = NetworkedObject.ArrToV3(cmd, index + 3);
 
                                 goPlayer.GetComponent<PlayerController>().SetRigidbody(posVel, rotVel);
                             }
-                            else if (cmd[1].Equals("w"))
+                            else if (cmd[1].Equals("assign"))
                             {
-                                pcPlayer.WalkForward();
+                                int oldId = int.Parse(cmd[2]);
+                                int newId = int.Parse(cmd[3]);
+                                dicNetObjects.Add(newId, dicNetObjects[oldId]);
+                                dicNetObjects.Remove(oldId);
+                                dicNetObjects[newId].SetNetworkId(newId);
                             }
-                            else if (cmd[1].Equals("l"))
+                            else if (cmd[1].Equals("change"))
                             {
-                                pcPlayer.TurnLeft();
-                            }
-                            else if (cmd[1].Equals("r"))
-                            {
-                                pcPlayer.TurnRight();
+                                dicNetObjects[int.Parse(cmd[2])].UpdateNetVar(cmd[3] + "," + cmd[4], cmd[5]);
                             }
                             else if (cmd[1].Equals("x"))
                             {
@@ -150,6 +157,14 @@ public class Client : MonoBehaviour
         } while (recData != NetworkEventType.Nothing);
     }
 
+    public void RegNetObj(int id, NetworkedObject no)
+    {
+        if (dicNetObjects == null)
+        {
+            dicNetObjects = new Dictionary<int, NetworkedObject>();
+        }
+        dicNetObjects.Add(id, no);
+    }
     public void SendMessageToServer(string message)
     {
         byte[] bytes = NetworkedObject.encode(localPlayerId + "," + message);
