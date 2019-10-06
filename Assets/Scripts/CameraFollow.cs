@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class CameraFollow : MonoBehaviour
 {
+    //CameraFollow is to be used on player objects, with a third person camera that lags just behind
+
     private GameObject goPlayer;
 
     public void SetPlayer(GameObject plr)

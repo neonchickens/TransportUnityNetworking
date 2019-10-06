@@ -4,24 +4,25 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
+    //Player is the local player controls being recieved
+
     private PlayerController pc;
     private NetworkedObject no;
 
-    // Start is called before the first frame update
     void Start()
     {
         pc = GetComponent<PlayerController>();
         no = GetComponent<NetworkedObject>();
     }
 
-    // Update is called once per frame
     void FixedUpdate()
     {
         if (!no.GetLocal())
         {
             return;
         }
-
+        
+        //We are manipulating variables controlling the playercontroller
         if (Input.GetAxis("Vertical") != 0)
         {
             if (Input.GetAxis("Vertical") > 0)

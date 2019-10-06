@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class FloatingTextBar : MonoBehaviour
 {
+    //FloatingTextBar is used to easily display names over objects
+    //This can be used for players or special NPCs that you want to stand out
+
     private GameObject camMain;
 
     void Start()
@@ -13,7 +16,7 @@ public class FloatingTextBar : MonoBehaviour
 
     void Update()
     {
-        //Make easy to read for camera
+        //Make easy to read for camera by facing it
         transform.LookAt(camMain.transform);
     }
 }

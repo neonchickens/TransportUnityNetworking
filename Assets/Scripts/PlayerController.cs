@@ -4,26 +4,27 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    //PlayerController controls the physical actions taken by the player
+    //The player (or server) sets the boolean action they want to happen
+    //The PC will then carry out that action 
+
     private Rigidbody rb;
-    private NetworkedObject no;
-    private Client c;
 
     public float speed;
-    public float jump;
     public float turn;
 
+    //Track these vars across the server
     [NetworkVar]
     public bool forward, left, right, back;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
-        no = GetComponent<NetworkedObject>();
-        c = FindObjectOfType<Client>();
     }
 
     void FixedUpdate()
     {
+        //Takes actions set by Player/Server
         if (forward || back)
         {
             rb.AddForce(transform.forward * speed * (forward ? 1 : -1));
@@ -34,6 +35,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    //Should the object lag behind, these methods will be used to reset it to the current position
     public void SetTransform(Vector3 pos, Vector3 rot)
     {
         transform.SetPositionAndRotation(pos, Quaternion.Euler(rot));
@@ -42,15 +44,6 @@ public class PlayerController : MonoBehaviour
     {
         rb.velocity = posVel;
         rb.rotation = Quaternion.Euler(rotVel);
-    }
-
-    public void Jump()
-    {
-        rb.velocity += jump * new Vector3(0, 1, 0);
-        if (no.GetLocal())
-        {
-            c.SendMessageToServer("j");
-        }
     }
 
 }
