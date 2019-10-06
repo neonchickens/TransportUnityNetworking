@@ -44,14 +44,6 @@ public class PlayerController : MonoBehaviour
         rb.rotation = Quaternion.Euler(rotVel);
     }
 
-    public void Copy(out Vector3 pos, out Vector3 rot, out Vector3 posVel, out Vector3 rotVel)
-    {
-        pos = transform.position;
-        rot = transform.rotation.eulerAngles;
-        posVel = rb.velocity;
-        rotVel = rb.rotation.eulerAngles;
-    }
-
     public void Jump()
     {
         rb.velocity += jump * new Vector3(0, 1, 0);

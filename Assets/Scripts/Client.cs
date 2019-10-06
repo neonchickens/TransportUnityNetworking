@@ -14,6 +14,7 @@ public class Client : MonoBehaviour
 
     GameObject goLocalPlayer;
     int localPlayerId = -1;
+    bool isConnected = false;
 
     // Start is called before the first frame update
     void Start()
@@ -51,8 +52,7 @@ public class Client : MonoBehaviour
                 case NetworkEventType.ConnectEvent:
 
                     goLocalPlayer = Instantiate(FindObjectOfType<Items>().getItem("player"));
-                    goLocalPlayer.GetComponent<NetworkedObject>().SetPrefab("player");
-                    goLocalPlayer.GetComponent<NetworkedObject>().SetLocal(true);
+                    goLocalPlayer.GetComponent<NetworkedObject>().Setup("player", true);
                     FindObjectOfType<CameraFollow>().SetPlayer(goLocalPlayer);
 
                     break;
@@ -67,10 +67,9 @@ public class Client : MonoBehaviour
                         {
                             if (cmd[1].Equals("spawn"))
                             {
-                                dicNetObjects.Add(int.Parse(cmd[2]), null);
                                 GameObject goPlayer = Instantiate(FindObjectOfType<Items>().getItem(cmd[3]));
                                 NetworkedObject no = goPlayer.GetComponent<NetworkedObject>();
-                                no.SetPrefab(cmd[3]);
+                                no.Setup(cmd[3], false);
                                 no.SetNetworkId(int.Parse(cmd[2]));
                                 dicNetObjects.Add(int.Parse(cmd[2]), no);
                                 //if (dicPlayers.Count == 0)
@@ -90,27 +89,27 @@ public class Client : MonoBehaviour
                             } else if (cmd[1].Equals("transform"))
                             {
                                 //Used for initial transform setting
-                                int index = 2;
+                                int index = 3;
                                 GameObject goPlayer = dicNetObjects[int.Parse(cmd[2])].gameObject;
                                 Vector3 pos = NetworkedObject.ArrToV3(cmd, index);
                                 Vector3 rot = NetworkedObject.ArrToV3(cmd, index + 3);
 
                                 goPlayer.GetComponent<PlayerController>().SetTransform(pos, rot);
                             }
-                            else if (cmd[1].Equals("uutransform"))
+                            else if (cmd[1].Equals("utransform"))
                             {
-                                int index = 2;
+                                int index = 3;
                                 GameObject goPlayer = dicNetObjects[int.Parse(cmd[2])].gameObject;
                                 Vector3 pos = NetworkedObject.ArrToV3(cmd, index);
                                 Vector3 rot = NetworkedObject.ArrToV3(cmd, index + 3);
 
                                 Debug.Log("Difference position: " + (goPlayer.transform.position - pos).magnitude);
-                                if ((goPlayer.transform.position - pos).magnitude > 2)
+                                if ((goPlayer.transform.position - pos).magnitude > .5)
                                 {
                                     Debug.Log("Updating position");
                                     goPlayer.GetComponent<Rigidbody>().MovePosition(pos);
                                 }
-                                if (Quaternion.Angle(goPlayer.transform.rotation, Quaternion.Euler(rot)) > 5)
+                                if (Quaternion.Angle(goPlayer.transform.rotation, Quaternion.Euler(rot)) > 2)
                                 {
                                     Debug.Log("Updating angle");
                                     goPlayer.GetComponent<Rigidbody>().MoveRotation(Quaternion.Euler(rot));
@@ -118,7 +117,7 @@ public class Client : MonoBehaviour
                             }
                             else if (cmd[1].Equals("rigidbody"))
                             {
-                                int index = 2;
+                                int index = 3;
                                 GameObject goPlayer = dicNetObjects[int.Parse(cmd[2])].gameObject;
                                 Vector3 posVel = NetworkedObject.ArrToV3(cmd, index);
                                 Vector3 rotVel = NetworkedObject.ArrToV3(cmd, index + 3);

@@ -23,18 +23,15 @@ public class NetworkedObject : MonoBehaviour
 
     void Start()
     {
-        rb = GetComponent<Rigidbody>();
         GetAllNetVars();
 
+        rb = GetComponent<Rigidbody>();
         client = FindObjectOfType<Client>();
-        if (client != null && isLocalPlayer)
-        {
-            SetLocal(true);
-        }
     }
 
-    public void SetLocal(bool local)
+    public void Setup(string prefab, bool local)
     {
+        this.prefab = prefab;
         isLocalPlayer = local;
         if (local)
         {
@@ -59,10 +56,6 @@ public class NetworkedObject : MonoBehaviour
         {
             client.SendMessageToServer(csvRecord(',', "spawn", id.ToString(), prefab));
         }
-    }
-    public void SetPrefab(string prefab)
-    {
-        this.prefab = prefab;
     }
 
     // Update is called once per frame
@@ -111,6 +104,7 @@ public class NetworkedObject : MonoBehaviour
                         if (!dicNetVars.ContainsKey(key))
                         {
                             dicNetVars.Add(key, pi.GetValue(mb).ToString());
+                            Debug.Log("Tracking Var: " + key);
                         }
                     }
 
@@ -119,6 +113,13 @@ public class NetworkedObject : MonoBehaviour
             }
         }
         //Debug.Log("Net " + count1 + "," + count2 + "," + count3 + "," + count4);
+    }
+    public void Copy(out Vector3 pos, out Vector3 rot, out Vector3 posVel, out Vector3 rotVel)
+    {
+        pos = transform.position;
+        rot = transform.rotation.eulerAngles;
+        posVel = rb.velocity;
+        rotVel = rb.rotation.eulerAngles;
     }
 
     private void CheckAllNetVars()
@@ -151,7 +152,12 @@ public class NetworkedObject : MonoBehaviour
                         {
                             dicNetVars[key] = pi.GetValue(mb).ToString();
                             client.SendMessageToServer(csvRecord(',', "change", id.ToString(), key, dicNetVars[key]));
-                            Debug.Log(pi.GetValue(mb).ToString());
+                            Debug.Log("Var Change: " + pi.GetValue(mb).ToString());
+
+                            Vector3 pos = gameObject.transform.position;
+                            Vector3 rot = gameObject.transform.rotation.eulerAngles;
+                            client.SendMessageToServer(csvRecord(',', "utransform", id.ToString(), pos.x.ToString("F1"), pos.y.ToString("F1"), pos.z.ToString("F1"),
+                                rot.x.ToString("F1"), rot.y.ToString("F1"), rot.z.ToString("F1")));
                         }
                     }
 

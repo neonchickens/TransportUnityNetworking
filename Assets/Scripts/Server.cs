@@ -41,16 +41,15 @@ public class Server : MonoBehaviour
         int bufferSize = 1024;
         int dataSize;
         byte error;
-        NetworkEventType recData;
+        NetworkEventType recData = NetworkTransport.Receive(out recHostId, out connectionId, out channelId, recBuffer, bufferSize, out dataSize, out error);
         do
         {
-            recData = NetworkTransport.Receive(out recHostId, out connectionId, out channelId, recBuffer, bufferSize, out dataSize, out error);
             switch (recData)
             {
                 case NetworkEventType.Nothing: break;
                 case NetworkEventType.ConnectEvent:
                     Debug.Log("New connection:" + connectionId);
-
+                    dicPlayers.Add(connectionId, null);
                     ////Initialize new player in local
                     //GameObject go = Instantiate(FindObjectOfType<Items>().getItem("player"));
                     //intObjIdGen++;
@@ -60,16 +59,29 @@ public class Server : MonoBehaviour
                     SendMessageToUser(NetworkedObject.csvRecord(',', connectionId.ToString(), "connect"), connectionId);
 
                     //Tell new player about all existing players
+                    //Vector3 pos, rot, posVel, rotVel;
+                    //foreach (int id in dicPlayers.Keys)
+                    //{
+                    //    //Send your spawn, transform, and rigidbody in 3 messages
+                    //    //TODO: Maybe if we trim the info (don't need float values) we can shorten these messages
+                    //    dicPlayers[id].GetComponent<PlayerController>().Copy(out pos, out rot, out posVel, out rotVel);
+                    //    SendMessageToUser(NetworkedObject.csvRecord(',', id.ToString(), "spawn", intObjIdGen.ToString(), "player"), connectionId);
+                    //    SendMessageToUser(NetworkedObject.csvRecord(',', id.ToString(), "transform", pos.x.ToString("F1"), pos.y.ToString("F1"), pos.z.ToString("F1"),
+                    //        rot.x.ToString("F1"), rot.y.ToString("F1"), rot.z.ToString("F1")), connectionId);
+                    //    SendMessageToUser(NetworkedObject.csvRecord(',', id.ToString(), "rigidbody", posVel.x.ToString("F1"), posVel.y.ToString("F1"), posVel.z.ToString("F1"),
+                    //        rotVel.x.ToString("F1"), rotVel.y.ToString("F1"), rotVel.z.ToString("F1")), connectionId);
+                    //}
+
                     Vector3 pos, rot, posVel, rotVel;
-                    foreach (int id in dicPlayers.Keys)
+                    foreach (int id in dicNetObjects.Keys)
                     {
                         //Send your spawn, transform, and rigidbody in 3 messages
                         //TODO: Maybe if we trim the info (don't need float values) we can shorten these messages
-                        dicPlayers[id].GetComponent<PlayerController>().Copy(out pos, out rot, out posVel, out rotVel);
-                        SendMessageToUser(NetworkedObject.csvRecord(',', id.ToString(), "spawn", intObjIdGen.ToString(), "player"), connectionId);
-                        SendMessageToUser(NetworkedObject.csvRecord(',', id.ToString(), "transform", pos.x.ToString("F1"), pos.y.ToString("F1"), pos.z.ToString("F1"),
+                        dicNetObjects[id].Copy(out pos, out rot, out posVel, out rotVel);
+                        SendMessageToUser(NetworkedObject.csvRecord(',', "0", "spawn", id.ToString(), "player"), connectionId);
+                        SendMessageToUser(NetworkedObject.csvRecord(',', "0", "transform", id.ToString(), pos.x.ToString("F1"), pos.y.ToString("F1"), pos.z.ToString("F1"),
                             rot.x.ToString("F1"), rot.y.ToString("F1"), rot.z.ToString("F1")), connectionId);
-                        SendMessageToUser(NetworkedObject.csvRecord(',', id.ToString(), "rigidbody", posVel.x.ToString("F1"), posVel.y.ToString("F1"), posVel.z.ToString("F1"),
+                        SendMessageToUser(NetworkedObject.csvRecord(',', "0", "rigidbody", id.ToString(), posVel.x.ToString("F1"), posVel.y.ToString("F1"), posVel.z.ToString("F1"),
                             rotVel.x.ToString("F1"), rotVel.y.ToString("F1"), rotVel.z.ToString("F1")), connectionId);
                     }
 
@@ -102,19 +114,19 @@ public class Server : MonoBehaviour
                     string data = NetworkedObject.decode(recBuffer, dataSize);
                     string[] cmd = data.Split(',');
 
-                    if (cmd[1].Equals("uutransform"))
+                    if (cmd[1].Equals("utransform"))
                     {
                         int index = 2;
                         GameObject goPlayer = dicNetObjects[int.Parse(cmd[2])].gameObject;
                         Vector3 upos = NetworkedObject.ArrToV3(cmd, index);
                         Vector3 urot = NetworkedObject.ArrToV3(cmd, index + 3);
                         Debug.Log("Difference position: " + (goPlayer.transform.position - upos).magnitude);
-                        if ((goPlayer.transform.position - upos).magnitude > 2)
+                        if ((goPlayer.transform.position - upos).magnitude > .5)
                         {
                             Debug.Log("Updating position");
                             goPlayer.GetComponent<Rigidbody>().MovePosition(upos);
                         }
-                        if (Quaternion.Angle(goPlayer.transform.rotation, Quaternion.Euler(urot)) > 5)
+                        if (Quaternion.Angle(goPlayer.transform.rotation, Quaternion.Euler(urot)) > 2)
                         {
                             Debug.Log("Updating angle");
                             goPlayer.GetComponent<Rigidbody>().MoveRotation(Quaternion.Euler(urot));
@@ -124,7 +136,7 @@ public class Server : MonoBehaviour
                     {
                         GameObject goPlayer = Instantiate(FindObjectOfType<Items>().getItem(cmd[3]));
                         NetworkedObject no1 = goPlayer.GetComponent<NetworkedObject>();
-                        no1.SetPrefab(cmd[3]);
+                        no1.Setup(cmd[3], false);
                         no1.SetNetworkId(int.Parse(cmd[2]));
                         dicNetObjects.Add(int.Parse(cmd[2]), no1);
                         //if (dicPlayers.Count == 0)
@@ -141,6 +153,9 @@ public class Server : MonoBehaviour
                     else if (cmd[1].Equals("register"))
                     {
                         SendMessageToUser(NetworkedObject.csvRecord(',', "0", "assign", cmd[2], (intObjIdGen++).ToString()), connectionId);
+
+                        //Server only message
+                        return;
                     }
                     else if (cmd[1].Equals("change"))
                     {
@@ -156,6 +171,8 @@ public class Server : MonoBehaviour
                                 break;
                         }
                     }
+                    cmd[0] = connectionId.ToString();
+                    data = NetworkedObject.csvRecord(',', cmd);
                     SendMessageToAll(data);
 
                     break;
