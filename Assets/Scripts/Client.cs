@@ -71,19 +71,29 @@ public class Client : MonoBehaviour
 
                     int plrId = int.Parse(cmd[0]);
                     string command = cmd[1];
-                    int objNetId = int.Parse(cmd[2]);
 
                     //Don't let the server tell you what to do
-                    if (plrId != localPlayerId)
+                    if (command.Equals("connect"))
                     {
+                        //We're freshly spawned and this will be our id
+                        localPlayerId = plrId;
+                    }
+                    else if (plrId != localPlayerId)
+                    {
+                        int objNetId = int.Parse(cmd[2]);
+
                         //Spawn an object
                         if (command.Equals("spawn"))
                         {
-                            GameObject goPlayer = Instantiate(FindObjectOfType<Items>().getItem(cmd[3]));
-                            NetworkedObject no = goPlayer.GetComponent<NetworkedObject>();
-                            no.Setup(cmd[3], false);
-                            no.SetNetworkId(objNetId);
-                            dicNetObjects.Add(objNetId, no);
+                            //If we already know of it, don't spawn it
+                            if (!dicNetObjects.ContainsKey(objNetId))
+                            {
+                                GameObject goPlayer = Instantiate(FindObjectOfType<Items>().getItem(cmd[3]));
+                                NetworkedObject no = goPlayer.GetComponent<NetworkedObject>();
+                                no.Setup(cmd[3], false);
+                                no.SetNetworkId(objNetId);
+                                dicNetObjects.Add(objNetId, no);
+                            }
                         }
                         else if (command.Equals("connect"))
                         {
