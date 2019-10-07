@@ -83,20 +83,31 @@ public class Server : MonoBehaviour
 
                     if (command.Equals("utransform"))
                     {
-                        int index = 2;
+                        //Updates transform when we're out of sync
+                        int index = 3;
+                        NetworkedObject no = dicNetObjects[objNetId];
                         GameObject goPlayer = dicNetObjects[objNetId].gameObject;
                         Vector3 upos = NetworkedObject.ArrToV3(cmd, index);
                         Vector3 urot = NetworkedObject.ArrToV3(cmd, index + 3);
-                        Debug.Log("Difference position: " + (goPlayer.transform.position - upos).magnitude);
-                        if ((goPlayer.transform.position - upos).magnitude > .5)
+
+                        if ((goPlayer.transform.position - upos).magnitude > .5 || Quaternion.Angle(goPlayer.transform.rotation, Quaternion.Euler(urot)) > 2)
                         {
-                            Debug.Log("Updating position");
-                            goPlayer.GetComponent<Rigidbody>().MovePosition(upos);
+                            Debug.Log("Updating position and rotation");
+                            no.SetTransform(upos, urot);
                         }
-                        if (Quaternion.Angle(goPlayer.transform.rotation, Quaternion.Euler(urot)) > 2)
+                    }
+                    else if (command.Equals("urigidbody"))
+                    {
+                        //Updates rigidbody when we're out of sync
+                        int index = 3;
+                        NetworkedObject no = dicNetObjects[objNetId];
+                        Vector3 uvel = NetworkedObject.ArrToV3(cmd, index);
+                        Vector3 urotVel = NetworkedObject.ArrToV3(cmd, index + 3);
+
+                        if ((no.rb.velocity - uvel).magnitude > .5 || Quaternion.Angle(no.rb.rotation, Quaternion.Euler(urotVel)) > 2)
                         {
-                            Debug.Log("Updating angle");
-                            goPlayer.GetComponent<Rigidbody>().MoveRotation(Quaternion.Euler(urot));
+                            Debug.Log("Updating rigidbody");
+                            no.SetRigidbody(uvel, urotVel);
                         }
                     }
                     else if (command.Equals("spawn"))

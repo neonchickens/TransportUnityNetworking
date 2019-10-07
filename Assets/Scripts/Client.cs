@@ -104,41 +104,49 @@ public class Client : MonoBehaviour
                         {
                             //Used for initial transform setting
                             int index = 3;
-                            GameObject goPlayer = dicNetObjects[objNetId].gameObject;
+                            NetworkedObject no = dicNetObjects[objNetId];
                             Vector3 pos = NetworkedObject.ArrToV3(cmd, index);
                             Vector3 rot = NetworkedObject.ArrToV3(cmd, index + 3);
 
-                            goPlayer.GetComponent<PlayerController>().SetTransform(pos, rot);
+                            no.SetTransform(pos, rot);
                         }
                         else if (command.Equals("utransform"))
                         {
                             //Updates transform when we're out of sync
                             int index = 3;
-                            GameObject goPlayer = dicNetObjects[objNetId].gameObject;
+                            NetworkedObject no = dicNetObjects[objNetId];
                             Vector3 pos = NetworkedObject.ArrToV3(cmd, index);
                             Vector3 rot = NetworkedObject.ArrToV3(cmd, index + 3);
 
-                            Debug.Log("Difference position: " + (goPlayer.transform.position - pos).magnitude);
-                            if ((goPlayer.transform.position - pos).magnitude > .5)
+                            if ((no.transform.position - pos).magnitude > .5 || Quaternion.Angle(no.transform.rotation, Quaternion.Euler(rot)) > 2)
                             {
-                                Debug.Log("Updating position");
-                                goPlayer.GetComponent<Rigidbody>().MovePosition(pos);
+                                Debug.Log("Updating position and rotation");
+                                no.SetTransform(pos, rot);
                             }
-                            if (Quaternion.Angle(goPlayer.transform.rotation, Quaternion.Euler(rot)) > 2)
+                        }
+                        else if (command.Equals("urigidbody"))
+                        {
+                            //Updates rigidbody when we're out of sync
+                            int index = 3;
+                            NetworkedObject no = dicNetObjects[objNetId];
+                            Vector3 vel = NetworkedObject.ArrToV3(cmd, index);
+                            Vector3 rotVel = NetworkedObject.ArrToV3(cmd, index + 3);
+
+                            if ((no.rb.velocity - vel).magnitude > .5 || Quaternion.Angle(no.rb.rotation, Quaternion.Euler(rotVel)) > 2)
                             {
-                                Debug.Log("Updating angle");
-                                goPlayer.GetComponent<Rigidbody>().MoveRotation(Quaternion.Euler(rot));
+                                Debug.Log("Updating rigidbody");
+                                no.SetRigidbody(vel, rotVel);
                             }
                         }
                         else if (command.Equals("rigidbody"))
                         {
                             //Used for initial rigidbody setting
                             int index = 3;
-                            GameObject goPlayer = dicNetObjects[objNetId].gameObject;
+                            NetworkedObject no = dicNetObjects[objNetId];
                             Vector3 posVel = NetworkedObject.ArrToV3(cmd, index);
                             Vector3 rotVel = NetworkedObject.ArrToV3(cmd, index + 3);
 
-                            goPlayer.GetComponent<PlayerController>().SetRigidbody(posVel, rotVel);
+                            no.SetRigidbody(posVel, rotVel);
                         }
                         else if (command.Equals("assign"))
                         {

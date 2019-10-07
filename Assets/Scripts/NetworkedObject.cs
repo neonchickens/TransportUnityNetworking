@@ -20,8 +20,7 @@ public class NetworkedObject : MonoBehaviour
 
     private static int idGenLocal = 1;
 
-    private Rigidbody rb;
-
+    public Rigidbody rb;
     private Client client;
 
     void Start()
@@ -156,7 +155,10 @@ public class NetworkedObject : MonoBehaviour
                             client.SendMessageToServer(csvRecord(',', "utransform", id.ToString(), pos.x.ToString("F1"), pos.y.ToString("F1"), pos.z.ToString("F1"),
                                 rot.x.ToString("F1"), rot.y.ToString("F1"), rot.z.ToString("F1")));
 
-                            //TODO add rigidbody update
+                            Vector3 vel = rb.velocity;
+                            Vector3 rotvel = rb.rotation.eulerAngles;
+                            client.SendMessageToServer(csvRecord(',', "urigidbody", id.ToString(), vel.x.ToString("F1"), vel.y.ToString("F1"), vel.z.ToString("F1"),
+                                rotvel.x.ToString("F1"), rotvel.y.ToString("F1"), rotvel.z.ToString("F1")));
                         }
                     }
                 }
@@ -191,6 +193,17 @@ public class NetworkedObject : MonoBehaviour
 
             }
         }
+    }
+
+    //Should the object lag behind, these methods will be used to reset it to the current position
+    public void SetTransform(Vector3 pos, Vector3 rot)
+    {
+        transform.SetPositionAndRotation(pos, Quaternion.Euler(rot));
+    }
+    public void SetRigidbody(Vector3 posVel, Vector3 rotVel)
+    {
+        rb.velocity = posVel;
+        rb.rotation = Quaternion.Euler(rotVel);
     }
 
     //Helps translate objects to new players

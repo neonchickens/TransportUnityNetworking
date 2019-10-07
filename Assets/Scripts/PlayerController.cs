@@ -34,16 +34,4 @@ public class PlayerController : MonoBehaviour
             rb.AddTorque(turn * new Vector3(0, (left ? -1 : 1), 0));
         }
     }
-
-    //Should the object lag behind, these methods will be used to reset it to the current position
-    public void SetTransform(Vector3 pos, Vector3 rot)
-    {
-        transform.SetPositionAndRotation(pos, Quaternion.Euler(rot));
-    }
-    public void SetRigidbody(Vector3 posVel, Vector3 rotVel)
-    {
-        rb.velocity = posVel;
-        rb.rotation = Quaternion.Euler(rotVel);
-    }
-
 }
