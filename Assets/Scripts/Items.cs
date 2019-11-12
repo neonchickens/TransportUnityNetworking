@@ -8,7 +8,7 @@ public class Items : MonoBehaviour
     //Items keeps all spawnable prefabs for reference by client/server/player
 
     public Item[] lstItems;
-    //Temporary workaround to load items into a hashtable
+    //TODO Temporary workaround to load items into a hashtable
     private Dictionary<string, GameObject> dicItems;
 
     private Items items;

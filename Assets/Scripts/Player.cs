@@ -58,5 +58,25 @@ public class Player : MonoBehaviour
             pc.left = false;
             pc.right = false;
         }
+
+        if (Input.GetKey(KeyCode.W))
+        {
+            pc.ps = (int)(PlayerController.PlayerState.WALK);
+        }
+        else if (Input.GetKey(KeyCode.LeftShift))
+        {
+            pc.ps = (int)(PlayerController.PlayerState.RUN);
+        }
+        else if (Input.GetKey(KeyCode.LeftControl))
+        {
+            pc.ps = (int)(PlayerController.PlayerState.SNEAK);
+        }
+        else if(Input.GetKey(KeyCode.G))
+        {
+            pc.ps = (int)(PlayerController.PlayerState.DANCE);
+        } else
+        {
+            pc.ps = (int)(PlayerController.PlayerState.IDLE);
+        }
     }
 }

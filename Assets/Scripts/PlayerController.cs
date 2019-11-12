@@ -9,6 +9,7 @@ public class PlayerController : MonoBehaviour
     //The PC will then carry out that action 
 
     private Rigidbody rb;
+    private Animator anim;
 
     public float speed;
     public float turn;
@@ -17,9 +18,13 @@ public class PlayerController : MonoBehaviour
     [NetworkVar]
     public bool forward, left, right, back;
 
+    [NetworkVar]
+    public int ps;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        anim = GetComponent<Animator>();
     }
 
     void FixedUpdate()
@@ -33,5 +38,12 @@ public class PlayerController : MonoBehaviour
         {
             rb.AddTorque(turn * new Vector3(0, (left ? -1 : 1), 0));
         }
+
+        if (ps != anim.GetInteger("PlayerState"))
+        {
+            anim.SetInteger("PlayerState", ps);
+        }
     }
+
+    public enum PlayerState { IDLE, WALK, RUN, SNEAK, DANCE}
 }

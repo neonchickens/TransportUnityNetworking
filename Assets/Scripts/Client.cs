@@ -204,7 +204,7 @@ public class Client : MonoBehaviour
         NetworkTransport.Send(hostId, connectionId, myReliableChannelId, bytes, bytes.Length, out error);
         if (error != 0)
         {
-            Debug.LogError(bytes.Length + " bytes.\n" + (NetworkError)error);
+            Debug.LogError(bytes.Length + " bytes. " + (NetworkError)error);
         }
     }
 }
