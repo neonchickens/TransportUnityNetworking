@@ -59,17 +59,17 @@ public class Player : MonoBehaviour
             pc.right = false;
         }
 
-        if (Input.GetKey(KeyCode.W))
-        {
-            pc.ps = (int)(PlayerController.PlayerState.WALK);
-        }
-        else if (Input.GetKey(KeyCode.LeftShift))
+        if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.W))
         {
             pc.ps = (int)(PlayerController.PlayerState.RUN);
         }
-        else if (Input.GetKey(KeyCode.LeftControl))
+        else if (Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.W))
         {
             pc.ps = (int)(PlayerController.PlayerState.SNEAK);
+        }
+        else if (Input.GetKey(KeyCode.W))
+        {
+            pc.ps = (int)(PlayerController.PlayerState.WALK);
         }
         else if(Input.GetKey(KeyCode.G))
         {

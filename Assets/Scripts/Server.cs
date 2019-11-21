@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -7,9 +8,10 @@ public class Server : MonoBehaviour
 {
     //The server communicates all data between clients
 
-    private Dictionary<int, GameObject> dicPlayers;
+    private Dictionary<int, string> dicPlayers;
     private int intObjIdGen = 1;
     private Dictionary<int, NetworkedObject> dicNetObjects;
+    private Dictionary<int, List<int>> dicOwner;
 
     private int hostId;
     private int myReliableChannelId;
@@ -19,15 +21,16 @@ public class Server : MonoBehaviour
         //Seems to like to auto launch full screen, don't do that...
         Screen.fullScreen = !Screen.fullScreen;
 
-        dicPlayers = new Dictionary<int, GameObject>();
+        dicPlayers = new Dictionary<int, string>();
         dicNetObjects = new Dictionary<int, NetworkedObject>();
+        dicOwner = new Dictionary<int, List<int>>();
 
         //initializing the Transport Layer
         GlobalConfig gConfig = new GlobalConfig();
         NetworkTransport.Init(gConfig);
         ConnectionConfig config = new ConnectionConfig();
         myReliableChannelId = config.AddChannel(QosType.Reliable);
-        HostTopology topology = new HostTopology(config, 10);
+        HostTopology topology = new HostTopology(config, 100);
         hostId = NetworkTransport.AddHost(topology, 8888);
 
         Debug.Log("Ready for connections!");
@@ -56,6 +59,7 @@ public class Server : MonoBehaviour
                     //Give user their id
                     Debug.Log("New connection:" + connectionId);
                     dicPlayers.Add(connectionId, null);
+                    dicOwner.Add(connectionId, new List<int>());
                     SendMessageToUser(NetworkedObject.csvRecord(',', connectionId.ToString(), "connect"), connectionId);
 
                     //Tell player about all existing networked objects
@@ -64,11 +68,11 @@ public class Server : MonoBehaviour
                     {
                         //Send spawn, transform, and rigidbody in 3 messages
                         dicNetObjects[id].Copy(out pos, out rot, out posVel, out rotVel);
-                        SendMessageToUser(NetworkedObject.csvRecord(',', "0", "spawn", id.ToString(), "player"), connectionId);
-                        SendMessageToUser(NetworkedObject.csvRecord(',', "0", "transform", id.ToString(), pos.x.ToString("F1"), pos.y.ToString("F1"), pos.z.ToString("F1"),
-                            rot.x.ToString("F1"), rot.y.ToString("F1"), rot.z.ToString("F1")), connectionId);
-                        SendMessageToUser(NetworkedObject.csvRecord(',', "0", "rigidbody", id.ToString(), posVel.x.ToString("F1"), posVel.y.ToString("F1"), posVel.z.ToString("F1"),
-                            rotVel.x.ToString("F1"), rotVel.y.ToString("F1"), rotVel.z.ToString("F1")), connectionId);
+                        SendMessageToUser(NetworkedObject.csvRecord(',', "0", "spawn", id.ToString(), "player", false.ToString()), connectionId);
+                        SendMessageToUser(NetworkedObject.csvRecord(',', "0", "transform", id.ToString(), pos.x.ToString("F4"), pos.y.ToString("F4"), pos.z.ToString("F4"),
+                            rot.x.ToString("F4"), rot.y.ToString("F4"), rot.z.ToString("F4")), connectionId);
+                        SendMessageToUser(NetworkedObject.csvRecord(',', "0", "rigidbody", id.ToString(), posVel.x.ToString("F4"), posVel.y.ToString("F4"), posVel.z.ToString("F4"),
+                            rotVel.x.ToString("F4"), rotVel.y.ToString("F4"), rotVel.z.ToString("F4")), connectionId);
                     }
 
                     break;
@@ -79,6 +83,16 @@ public class Server : MonoBehaviour
                     string[] cmd = NetworkedObject.decode(recBuffer, dataSize).Split(',');
 
                     string command = cmd[1];
+
+                    if (command.Equals("connect"))
+                    {
+                        StartCoroutine(LookupPlayerLoc(connectionId, cmd[2]));
+                        dicPlayers[connectionId] = cmd[2];
+
+                        //Server only message
+                        return;
+                    }
+
                     int objNetId = int.Parse(cmd[2]);
 
                     if (command.Equals("utransform"))
@@ -115,8 +129,9 @@ public class Server : MonoBehaviour
                         GameObject goPlayer = Instantiate(FindObjectOfType<Items>().getItem(cmd[3]));
                         NetworkedObject no1 = goPlayer.GetComponent<NetworkedObject>();
                         no1.Setup(cmd[3], false);
-                        no1.SetNetworkId(objNetId);
+                        no1.SetNetworkId(objNetId, false);
                         dicNetObjects.Add(objNetId, no1);
+                        dicOwner[connectionId].Add(objNetId);
                     }
                     else if (command.Equals("register"))
                     {
@@ -144,12 +159,26 @@ public class Server : MonoBehaviour
 
                 case NetworkEventType.DisconnectEvent:
 
+                    string username = dicPlayers[connectionId];
+                    dicPlayers.Remove(connectionId);
+
                     //TODO setup command no longer works
                     Debug.Log("Lost connection:" + connectionId);
+                    List<int> lstOrphanObjectIds = dicOwner[connectionId];
+                    for (int i = lstOrphanObjectIds.Count - 1; i >= 0; i--)
+                    {
+                        Debug.Log("Destroying object from disconnected player");
+                        if (dicNetObjects[lstOrphanObjectIds[i]].GetPrefab().Equals("player"))
+                        {
+                            StartCoroutine(RecordPlayerLoc(dicNetObjects[lstOrphanObjectIds[i]].transform.position, username));
+                        }
+                        Destroy(dicNetObjects[lstOrphanObjectIds[i]].gameObject);
+                        dicNetObjects.Remove(lstOrphanObjectIds[i]);
+                        SendMessageToAll(NetworkedObject.csvRecord(',', "0", "remove", lstOrphanObjectIds[i].ToString()));
+                    }
+                    dicOwner.Remove(connectionId);
                     SendMessageToAll(connectionId + ",x");
 
-                    Destroy(dicPlayers[connectionId]);
-                    dicPlayers.Remove(connectionId);
 
                     break;
 
@@ -159,6 +188,75 @@ public class Server : MonoBehaviour
 
             //Recieve messages until there are none waiting
         } while (recData != NetworkEventType.Nothing);
+    }
+
+    IEnumerator LookupPlayerLoc(int connid, string username)
+    {
+        //Connect to questions database
+        string domain = "http://34.205.7.163/";
+        string attempts_url = domain + "mymmo_get_loc.php";
+
+        // Create a form object for sending data to the server
+        WWWForm form = new WWWForm();
+        form.AddField("username", username);
+
+        var download = UnityWebRequest.Post(attempts_url, form);
+
+        // Wait until the download is done
+        yield return download.SendWebRequest();
+
+        if (download.isNetworkError || download.isHttpError)
+        {
+            Debug.Log("Error downloading: " + download.error);
+        }
+        else
+        {
+            Debug.Log(download.downloadHandler.text);
+            Vector3 v3 = new Vector3();
+            if (download.downloadHandler.text.Length > 0)
+            {
+                v3 = JsonUtility.FromJson<V3>(download.downloadHandler.text).GetV3();
+            }
+
+            int newObjId = intObjIdGen++;
+            SendMessageToUser(NetworkedObject.csvRecord(',', "0", "spawn", newObjId.ToString(), "player", true.ToString()), connid);
+            SendMessageToAll(NetworkedObject.csvRecord(',', connid.ToString(), "spawn", newObjId.ToString(), "player", false.ToString()));
+            SendMessageToAll(NetworkedObject.csvRecord(',', "0", "transform", newObjId.ToString(), v3.x.ToString("F4"), v3.y.ToString("F4"), v3.z.ToString("F4"), "0", "0", "0"));
+            GameObject goPlayer = Instantiate(FindObjectOfType<Items>().getItem("player"), v3, Quaternion.identity);
+            NetworkedObject no1 = goPlayer.GetComponent<NetworkedObject>();
+            no1.Setup("player", false);
+            no1.SetNetworkId(newObjId, false);
+            dicNetObjects.Add(newObjId, no1);
+            dicOwner[connid].Add(newObjId);
+        }
+    }
+
+    IEnumerator RecordPlayerLoc(Vector3 v3, string username)
+    {
+        //Connect to questions database
+        string domain = "http://34.205.7.163/";
+        string attempts_url = domain + "mymmo_set_loc.php";
+
+        // Create a form object for sending data to the server
+        WWWForm form = new WWWForm();
+        form.AddField("username", username);
+        form.AddField("x", v3.x.ToString());
+        form.AddField("y", v3.y.ToString());
+        form.AddField("z", v3.z.ToString());
+
+        var download = UnityWebRequest.Post(attempts_url, form);
+
+        // Wait until the download is done
+        yield return download.SendWebRequest();
+
+        if (download.isNetworkError || download.isHttpError)
+        {
+            Debug.Log("Error downloading: " + download.error);
+        }
+        else
+        {
+            //Success
+        }
     }
 
     //Sends all players in dicPlayers a command csv
@@ -188,4 +286,16 @@ public class Server : MonoBehaviour
         }
     }
 
+    [Serializable]
+    public class V3
+    {
+        public float x = 0;
+        public float y = 0;
+        public float z = 0;
+
+        public Vector3 GetV3()
+        {
+            return new Vector3(x, y, z);
+        }
+    }
 }

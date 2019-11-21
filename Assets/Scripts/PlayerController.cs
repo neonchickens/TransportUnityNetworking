@@ -29,14 +29,16 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
+        rb.angularVelocity = new Vector3();
         //Takes actions set by Player/Server
         if (forward || back)
         {
-            rb.AddForce(transform.forward * speed * (forward ? 1 : -1));
+            rb.AddForce(transform.forward * speed * (ps == 3 ? .75f : 1) * (ps == 2 ? 1.25f : 1) * (forward ? 1 : -1));
         }
         if (left || right)
         {
-            rb.AddTorque(turn * new Vector3(0, (left ? -1 : 1), 0));
+            //rb.AddTorque(turn * new Vector3(0, (left ? -1 : 1), 0));
+            rb.MoveRotation(Quaternion.Euler(rb.rotation.eulerAngles + turn * new Vector3(0, (left ? -1 : 1), 0)));
         }
 
         if (ps != anim.GetInteger("PlayerState"))

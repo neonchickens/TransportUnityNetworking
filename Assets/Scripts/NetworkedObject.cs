@@ -27,7 +27,10 @@ public class NetworkedObject : MonoBehaviour
     {
         GetAllNetVars();
 
-        rb = GetComponent<Rigidbody>();
+        if (updateRigidbody)
+        {
+            rb = GetComponent<Rigidbody>();
+        }
         client = FindObjectOfType<Client>();
     }
 
@@ -36,18 +39,19 @@ public class NetworkedObject : MonoBehaviour
     {
         this.prefab = prefab;
         isLocalPlayer = local;
+        client = FindObjectOfType<Client>();
+        if (local && prefab.Equals("player"))
+        {
+            FindObjectOfType<CameraFollow>().SetPlayer(this.gameObject);
+        }
         if (local)
         {
             //Generate temporary negative client-side id
-            id = -idGenLocal++;
-            if (client == null)
-            {
-                client = FindObjectOfType<Client>();
-            }
-            client.RegNetObj(id, this);
+            //id = -idGenLocal++;
+            //client.RegNetObj(id, this);
 
-            //Ask server with a new global id
-            client.SendMessageToServer(csvRecord(',', "register", id.ToString()));
+            ////Ask server with a new global id
+            //client.SendMessageToServer(csvRecord(',', "register", id.ToString()));
         }
     }
 
@@ -57,10 +61,10 @@ public class NetworkedObject : MonoBehaviour
     }
 
     //Server will use this to set a global id
-    public void SetNetworkId(int networkId)
+    public void SetNetworkId(int networkId, bool isServerSpawned)
     {
         id = networkId;
-        if (isLocalPlayer)
+        if (isLocalPlayer && !isServerSpawned)
         {
             client.SendMessageToServer(csvRecord(',', "spawn", id.ToString(), prefab));
         }
@@ -75,8 +79,8 @@ public class NetworkedObject : MonoBehaviour
             {
                 //Vector3 pos = gameObject.transform.position;
                 //Vector3 rot = gameObject.transform.rotation.eulerAngles;
-                //client.SendMessageToServer(csvRecord(',', "utransform", id.ToString(), pos.x.ToString("F1"), pos.y.ToString("F1"), pos.z.ToString("F1"),
-                //    rot.x.ToString("F1"), rot.y.ToString("F1"), rot.z.ToString("F1")));
+                //client.SendMessageToServer(csvRecord(',', "utransform", id.ToString(), pos.x.ToString("F4"), pos.y.ToString("F4"), pos.z.ToString("F4"),
+                //    rot.x.ToString("F4"), rot.y.ToString("F4"), rot.z.ToString("F4")));
             }
 
             //Check for any updates to NetworkVars
@@ -112,8 +116,6 @@ public class NetworkedObject : MonoBehaviour
                         {
                             //The value is the string object
                             dicNetVars.Add(key, pi.GetValue(mb).ToString());
-
-                            //TODO hold pointers instead?
                         }
                     }
                 }
@@ -152,13 +154,13 @@ public class NetworkedObject : MonoBehaviour
 
                             Vector3 pos = gameObject.transform.position;
                             Vector3 rot = gameObject.transform.rotation.eulerAngles;
-                            client.SendMessageToServer(csvRecord(',', "utransform", id.ToString(), pos.x.ToString("F1"), pos.y.ToString("F1"), pos.z.ToString("F1"),
-                                rot.x.ToString("F1"), rot.y.ToString("F1"), rot.z.ToString("F1")));
+                            client.SendMessageToServer(csvRecord(',', "utransform", id.ToString(), pos.x.ToString("F4"), pos.y.ToString("F4"), pos.z.ToString("F4"),
+                                rot.x.ToString("F4"), rot.y.ToString("F4"), rot.z.ToString("F4")));
 
                             Vector3 vel = rb.velocity;
                             Vector3 rotvel = rb.rotation.eulerAngles;
-                            client.SendMessageToServer(csvRecord(',', "urigidbody", id.ToString(), vel.x.ToString("F1"), vel.y.ToString("F1"), vel.z.ToString("F1"),
-                                rotvel.x.ToString("F1"), rotvel.y.ToString("F1"), rotvel.z.ToString("F1")));
+                            client.SendMessageToServer(csvRecord(',', "urigidbody", id.ToString(), vel.x.ToString("F4"), vel.y.ToString("F4"), vel.z.ToString("F4"),
+                                rotvel.x.ToString("F4"), rotvel.y.ToString("F4"), rotvel.z.ToString("F4")));
                         }
                     }
                 }
@@ -200,6 +202,12 @@ public class NetworkedObject : MonoBehaviour
     {
         transform.SetPositionAndRotation(pos, Quaternion.Euler(rot));
     }
+
+    public string GetPrefab()
+    {
+        return prefab;
+    }
+
     public void SetRigidbody(Vector3 posVel, Vector3 rotVel)
     {
         rb.velocity = posVel;

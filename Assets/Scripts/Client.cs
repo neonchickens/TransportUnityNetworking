@@ -21,6 +21,7 @@ public class Client : MonoBehaviour
     void Start()
     {
         dicPlayers = new Dictionary<int, GameObject>();
+        dicNetObjects = new Dictionary<int, NetworkedObject>();
 
         //Sets up and attempts to connect to local connection
         GlobalConfig gConfig = new GlobalConfig();
@@ -30,7 +31,7 @@ public class Client : MonoBehaviour
         HostTopology topology = new HostTopology(config, 1);
         hostId = NetworkTransport.AddHost(topology);
         byte error;
-        connectionId = NetworkTransport.Connect(hostId, "10.0.0.252", 8888, 0, out error);
+        connectionId = NetworkTransport.Connect(hostId, "34.205.7.163", 8888, 0, out error);
     }
 
     // Update is called once per frame
@@ -49,15 +50,21 @@ public class Client : MonoBehaviour
             //Recieve message
             recData = NetworkTransport.Receive(out recHostId, out connectionId, out channelId, recBuffer, bufferSize, out dataSize, out error);
 
+            if ((byte)NetworkError.Ok != error)
+            {
+                Debug.Log((NetworkError)error);
+            }
+
             switch (recData)
             {
                 //Successfully connected to the server
                 case NetworkEventType.ConnectEvent:
 
                     //Spawn a local game object to play as
-                    goLocalPlayer = Instantiate(FindObjectOfType<Items>().getItem("player"));
-                    goLocalPlayer.GetComponent<NetworkedObject>().Setup("player", true);
-                    FindObjectOfType<CameraFollow>().SetPlayer(goLocalPlayer);
+                    //goLocalPlayer = Instantiate(FindObjectOfType<Items>().getItem("player"));
+                    //goLocalPlayer.GetComponent<NetworkedObject>().Setup("player", true);
+                    //FindObjectOfType<CameraFollow>().SetPlayer(goLocalPlayer);
+                    SendMessageToServer(NetworkedObject.csvRecord(',', "connect", PlayerPrefs.GetString("username")));
 
                     break;
 
@@ -90,8 +97,8 @@ public class Client : MonoBehaviour
                             {
                                 GameObject goPlayer = Instantiate(FindObjectOfType<Items>().getItem(cmd[3]));
                                 NetworkedObject no = goPlayer.GetComponent<NetworkedObject>();
-                                no.Setup(cmd[3], false);
-                                no.SetNetworkId(objNetId);
+                                no.Setup(cmd[3], bool.Parse(cmd[4]));
+                                no.SetNetworkId(objNetId, true);
                                 dicNetObjects.Add(objNetId, no);
                             }
                         }
@@ -155,12 +162,17 @@ public class Client : MonoBehaviour
                             int newId = int.Parse(cmd[3]);
                             dicNetObjects.Add(newId, dicNetObjects[oldId]);
                             dicNetObjects.Remove(oldId);
-                            dicNetObjects[newId].SetNetworkId(newId);
+                            dicNetObjects[newId].SetNetworkId(newId, false);
                         }
                         else if (command.Equals("change"))
                         {
                             //An object someone else controls send an update
                             dicNetObjects[objNetId].UpdateNetVar(cmd[3] + "," + cmd[4], cmd[5]);
+                        }
+                        else if (command.Equals("remove"))
+                        {
+                            Destroy(dicNetObjects[objNetId].gameObject);
+                            dicNetObjects.Remove(objNetId);
                         }
                         else if (command.Equals("x"))
                         {
@@ -193,7 +205,10 @@ public class Client : MonoBehaviour
         {
             dicNetObjects = new Dictionary<int, NetworkedObject>();
         }
-        dicNetObjects.Add(id, no);
+        if (!dicNetObjects.ContainsValue(no))
+        {
+            dicNetObjects.Add(id, no);
+        }
     }
 
     //Sends a string message to the server
